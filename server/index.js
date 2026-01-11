@@ -1,19 +1,44 @@
-const express = require("express");  //import express framework- toolkit to build backend
-const cors = require("cors");        // To let client and server talk
+import express from "express"
+import cors from "cors"
+import mongoose from "mongoose"
+import dotenv from "dotenv"
+import Counter from "./models/Counter.js"
+dotenv.config()
+
+// const Counter = require("./models/Counter");
 
 const app = express();
-app.use(cors());   //activates cors permission
+app.use(cors());
 app.use(express.json());
 
-let count = 0; //in memory database
+const PORT = process.env.port || 4000;
+const URL = `http://localhost:${PORT}/`;
 
-app.get("/api/rickroll/count", (req, res) => {   //API
-  res.json({ count });
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.log("Mongo error:", err));
+
+app.get("/api/rickroll/count", async (req, res) => {
+  let counter = await Counter.findOne();
+
+  if (!counter) {
+    counter = await Counter.create({ count: 0 });
+  }
+
+  res.json({ count: counter.count });
 });
 
-app.post("/api/rickroll", (req, res) => {
-  count++;
-  res.json({ count });
+app.post("/api/rickroll", async (req, res) => {
+  let counter = await Counter.findOne();
+
+  if (!counter) {
+    counter = await Counter.create({ count: 1 });
+  } else {
+    counter.count++;
+    await counter.save();
+  }
+
+  res.json({ count: counter.count });
 });
 
-app.listen(5000, () => console.log("Server running on 5000"));   //This starts the backend server on port 5000.
+app.listen(PORT, () => console.log(`Local: ${URL} ,Server running on ${PORT}`));
